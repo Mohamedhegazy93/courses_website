@@ -8,21 +8,20 @@ import {
   updatePassword,
   forgetPassword,
   verifyPassResetCode,
-  resetPassword
+  resetPassword,
 } from "../controllers/user.controller.js";
-// import {signupValidator,loginValidator} from '../validators/auth.validator.js'
 import { protectedRoute, adminRoute } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-router.get("/", protectedRoute, getAllUsers);
-router.get("/:id", protectedRoute, getUserData);
-router.patch("/:id/updatedata", protectedRoute, updateUserData);
-router.patch("/:id/unactivateuser", protectedRoute, unActivateUser);
-router.patch("/:id/activateuser", protectedRoute, activateUser);
-router.patch("/:id/updatepassword", protectedRoute, updatePassword);
-router.patch("/forgetpassword", protectedRoute, forgetPassword);
-router.post("/:id/verifypassresetcode", protectedRoute, verifyPassResetCode);
-router.patch("/:id/resetpassword",protectedRoute,resetPassword);
+router.get("/", protectedRoute, getAllUsers); //Admin Route
+router.get("/:id", protectedRoute, getUserData); //Protected Route (each user)
+router.patch("/:id/updatedata", protectedRoute, updateUserData); //Protected Route (each user)
+router.patch("/:id/unactivateuser", protectedRoute, unActivateUser); //Protected Route (each user)
+router.patch("/:id/activateuser", protectedRoute, activateUser); //Protected Route (each user)
+router.patch("/:id/updatepassword", protectedRoute, updatePassword); //Protected Route (each user)
+router.patch("/forgetpassword", protectedRoute, forgetPassword); //Protected Route (each user)
+router.post("/:id/verifypassresetcode", protectedRoute, verifyPassResetCode); //Protected Route (each user)
+router.patch("/:id/resetpassword", protectedRoute, resetPassword); //Protected Route (each user)
 
 export default router;

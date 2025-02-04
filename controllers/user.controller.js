@@ -2,6 +2,8 @@ import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+import asyncHandler  from 'express-async-handler'
+import ApiError from '../utils/apiError.js'
 //GET ALL USERS
 //ADMIN ROUTE
 export const getAllUsers = async (req, res) => {
@@ -13,10 +15,10 @@ export const getAllUsers = async (req, res) => {
 };
 //GET USER DATA
 //USER ROUTE AUTH
-export const getUserData = async (req, res) => {
+export const getUserData =asyncHandler (async (req, res,next) => {
   const user = await User.findById(req.params.id);
   if (!user) {
-    return res.json({ message: "user not found" });
+    return next(new ApiError(`No USER for this id`, 404));
   }
 
   if (req.user.userId !== user._id.toString()) {
@@ -26,7 +28,7 @@ export const getUserData = async (req, res) => {
   res.status(200).json({
     data: user,
   });
-};
+}) 
 //UPDATE USER DATA
 //USER ROUTE AUTH
 export const updateUserData = async (req, res) => {

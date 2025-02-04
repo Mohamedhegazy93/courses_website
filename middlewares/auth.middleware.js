@@ -14,11 +14,11 @@ export const protectedRoute = async (req, res, next) => {
     if (!token) {
       return res.json({ message: "you cant perform this action" });
     }
-    console.log(token);
+    // console.log(token);
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    console.log(decoded);
+    // console.log(decoded);
     req.user = decoded;
-    console.log(req.user.userId);
+    // console.log(req.user.userId);
     const user = await User.findById(req.user.userId);
     if (!user) {
       return res.json({ message: "user not found" });
@@ -41,7 +41,7 @@ export const adminRoute = async (req, res, next) => {
 export const teacherRoute = async (req, res, next) => {
   const user = await User.findById(req.user.userId);
   if (user.role !== "teacher") {
-    return res.json({ message: "access denied | admin only" });
+    return res.json({ message: "access denied | teacher only" });
   }
 
   next();
