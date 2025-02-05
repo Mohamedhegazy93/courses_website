@@ -9,27 +9,27 @@ import { dirname } from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
+//upload files
 export const uploadCourseFiles = asyncHandler(async (req, res, next) => {
   if (!req.files || Object.keys(req.files).length === 0) {
-    return next(new ApiError("image not found , please upload image", 400));
+    return next(new ApiError("please upload course files", 400));
   }
+  //upload images
   if (req.files.image) {
     // req.body.image = req.files.filename;
     req.body.image = req.files.image[0].filename;
   }
-
+  //upload videos
   if (req.files.videos) {
     req.body.videos = [];
     const uploadedFilenames = new Set();
 
     for (const [index, video] of req.files.videos.entries()) {
-      // **هنا يتم استخدام req.body.videoTitle إذا كان موجوداً، وإلا يتم استخدام اسم الملف كعنوان افتراضي**
       const title =
         req.body.videoTitle && req.body.videoTitle[index]
           ? req.body.videoTitle[index]
           : video.originalname;
-
+      //check duplicated videos
       if (uploadedFilenames.has(video.filename)) {
         return next(
           new ApiError(
@@ -40,7 +40,7 @@ export const uploadCourseFiles = asyncHandler(async (req, res, next) => {
       }
 
       uploadedFilenames.add(video.filename);
-
+      //get video duration in secs
       try {
         const videoPath = path.join(__dirname, "..", "uploads", video.filename);
 
@@ -54,7 +54,7 @@ export const uploadCourseFiles = asyncHandler(async (req, res, next) => {
 
           req.body.videos.push({
             filename: video.filename,
-            title, // **يتم استخدام العنوان الذي أدخله المستخدم هنا**
+            title,
             duration: formattedDuration,
           });
         } else {
@@ -77,7 +77,7 @@ export const uploadCourseFiles = asyncHandler(async (req, res, next) => {
 
   next();
 });
-
+//Create Course
 export const createCourse = asyncHandler(async (req, res) => {
   const { title, description, level, price, teacher, image, videos } = req.body;
   const courseCreate = await Course.create({
@@ -92,6 +92,7 @@ export const createCourse = asyncHandler(async (req, res) => {
 
   return res.json(courseCreate);
 });
+//GET ALL COURSES
 export const getAllCourses = asyncHandler(async (req, res, next) => {
   const courses = await Course.find()
     .populate("teacher", "fullName -_id")
@@ -100,10 +101,11 @@ export const getAllCourses = asyncHandler(async (req, res, next) => {
     return next(new ApiError("no courses yet", 400));
   }
   res.json({
-    length:courses.length,
-    data:courses
+    length: courses.length,
+    data: courses,
   });
 });
+//GET ONE COURSE
 export const getOneCourse = asyncHandler(async (req, res, next) => {
   const course = await Course.findById(req.params.courseId).populate(
     "teacher",
@@ -114,22 +116,53 @@ export const getOneCourse = asyncHandler(async (req, res, next) => {
   }
   res.json(course);
 });
-export const deleteCourse = asyncHandler(async (req, res, next) => {
+//UPDATE COURSE
+export const updateCourse = asyncHandler(async (req, res, next) => {
+  const { courseId } = req.params; 
+  const { title, description, level, price } = req.body; 
 
-  const findCourse=await Course.findById(req.params.courseId)
+  const course=await Course.findById(req.params.courseId)
+  if (!course) {
+    return next(new ApiError("Course not found", 404));
+  }
+  if (req.user.userId.toString() !== course.teacher._id.toString()) {
+    return next(new ApiError("You are not authorized to update this course", 403));
+  }
+  const updatedCourse = await Course.findByIdAndUpdate(
+    courseId,
+    { title, description, level, price }, 
+    { new: true, runValidators: true } 
+  );
+
+  await updatedCourse.save()
+
+  if (!updatedCourse) {
+    return next(new ApiError("Failed to update course", 500)); 
+  }
+
+  res.status(200).json({
+    message: "Course information updated successfully",
+    data: updatedCourse,
+  });
+
+
+});
+//DELETE COURSE
+export const deleteCourse = asyncHandler(async (req, res, next) => {
+  const findCourse = await Course.findById(req.params.courseId);
   if (!findCourse) {
     return next(new ApiError("course not found", 400));
   }
-  if(req.user.userId.toString()!==findCourse.teacher._id.toString()){
+  if (req.user.userId.toString() !== findCourse.teacher._id.toString()) {
     return next(new ApiError("you can not perfrom this action", 400));
-
-
   }
-  
+
   const course = await Course.findByIdAndDelete(req.params.courseId);
- 
+
   res.json({ message: "Course Deleted" });
 });
+
+
 
 
 
