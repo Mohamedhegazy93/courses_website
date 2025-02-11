@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import User from './user.model.js'
 
 const courseSchema = new mongoose.Schema(
   {
@@ -29,6 +30,7 @@ const courseSchema = new mongoose.Schema(
       type: Number,
       required:true
     },
+   
     image: {
       type: String,
       required:true
@@ -43,6 +45,44 @@ const courseSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+courseSchema.statics.calucaule=async function(teacherId){
+  const result=await this.aggregate([
+    {
+      $match:{teacher:teacherId},  //get courses belong to this schema
+    },
+    {
+      $group:{
+        _id:'teacher',
+        avgPrice:{$avg:'$price'},
+        priceQuantity:{$sum:1}
+
+
+      }
+    }
+
+  ]
+
+)
+
+const teacher=await User.findById(teacherId)
+teacher.totalCourses=result[0].priceQuantity
+console.log(result[0].priceQuantity)
+await teacher.save()
+console.log(teacher)
+console.log(result)
+
+  
+  
+}
+
+
+courseSchema.post('save',async function(){
+ await this.constructor.calucaule(this.teacher)
+ 
+
+})
+
 
 const Course = mongoose.model("Course", courseSchema);
 

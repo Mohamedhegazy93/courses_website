@@ -6,10 +6,11 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-
+import User from "../models/user.model.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-//upload files
+//-----------------------------------------------------------------------
+//UPLOAD FILES
 export const uploadCourseFiles = asyncHandler(async (req, res, next) => {
   if (!req.files || Object.keys(req.files).length === 0) {
     return next(new ApiError("please upload course files", 400));
@@ -77,7 +78,8 @@ export const uploadCourseFiles = asyncHandler(async (req, res, next) => {
 
   next();
 });
-//Create Course
+//-----------------------------------------------------------------------
+//CREATE COURSE
 export const createCourse = asyncHandler(async (req, res) => {
   const { title, description, level, price, teacher, image, videos } = req.body;
   const courseCreate = await Course.create({
@@ -89,22 +91,48 @@ export const createCourse = asyncHandler(async (req, res) => {
     image,
     videos,
   });
+  const user = await User.findById(req.user.userId);
+  user.createdCourses.push(courseCreate._id);
+  await user.save(); // Add the new course's ID
 
   return res.json(courseCreate);
 });
+//-----------------------------------------------------------------------
 //GET ALL COURSES
 export const getAllCourses = asyncHandler(async (req, res, next) => {
-  const courses = await Course.find()
+  const queryStringObj = { ...req.query };
+  const excludesFields = ["page", "sort", "limit", "fields"];
+  excludesFields.forEach((field) => delete queryStringObj[field]);
+  let queryStr = JSON.stringify(queryStringObj);
+  queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+
+  const page = req.query.page * 1 || 1;
+  const limit = req.query.limit * 1 || 20;
+  const skip = (page - 1) * limit;
+
+  let mongooseQuery = Course.find(JSON.parse(queryStr))
+    .skip(skip)
+    .limit(limit)
     .populate("teacher", "fullName -_id")
     .select("-__v -videos -description");
+
+  if (req.query.sort) {
+    console.log(req.query.sort);
+    let sortby = req.query.sort.split(",").join(" ");
+    mongooseQuery = mongooseQuery.sort(sortby);
+  }
+
+  const courses = await mongooseQuery;
   if (!courses) {
     return next(new ApiError("no courses yet", 400));
   }
   res.json({
     length: courses.length,
+    page,
     data: courses,
   });
 });
+//-----------------------------------------------------------------------
 //GET ONE COURSE
 export const getOneCourse = asyncHandler(async (req, res, next) => {
   const course = await Course.findById(req.params.courseId).populate(
@@ -116,37 +144,55 @@ export const getOneCourse = asyncHandler(async (req, res, next) => {
   }
   res.json(course);
 });
+export const getOneVideo = asyncHandler(async (req, res, next) => {
+  const course = await Course.findById(req.params.id);
+  if (!course) {
+    return next(new ApiError("course not found", 400));
+  }
+
+  const video = course.videos.find(
+    (video) => video._id.toString() === req.params.videoId
+  );
+
+  if (!video) {
+    return next(new ApiError("video not found", 400));
+  }
+
+  res.json(video);
+});
+//-----------------------------------------------------------------------
 //UPDATE COURSE
 export const updateCourse = asyncHandler(async (req, res, next) => {
-  const { courseId } = req.params; 
-  const { title, description, level, price } = req.body; 
+  const { courseId } = req.params;
+  const { title, description, level, price } = req.body;
 
-  const course=await Course.findById(req.params.courseId)
+  const course = await Course.findById(req.params.courseId);
   if (!course) {
     return next(new ApiError("Course not found", 404));
   }
   if (req.user.userId.toString() !== course.teacher._id.toString()) {
-    return next(new ApiError("You are not authorized to update this course", 403));
+    return next(
+      new ApiError("You are not authorized to update this course", 403)
+    );
   }
   const updatedCourse = await Course.findByIdAndUpdate(
     courseId,
-    { title, description, level, price }, 
-    { new: true, runValidators: true } 
+    { title, description, level, price },
+    { new: true, runValidators: true }
   );
 
-  await updatedCourse.save()
+  await updatedCourse.save();
 
   if (!updatedCourse) {
-    return next(new ApiError("Failed to update course", 500)); 
+    return next(new ApiError("Failed to update course", 500));
   }
 
   res.status(200).json({
     message: "Course information updated successfully",
     data: updatedCourse,
   });
-
-
 });
+//-----------------------------------------------------------------------
 //DELETE COURSE
 export const deleteCourse = asyncHandler(async (req, res, next) => {
   const findCourse = await Course.findById(req.params.courseId);
@@ -159,15 +205,13 @@ export const deleteCourse = asyncHandler(async (req, res, next) => {
 
   const course = await Course.findByIdAndDelete(req.params.courseId);
 
+  if (course) {
+    await Course.calucaule(course.teacher); // to change numbers of total courses for this teacher
+  }
+
   res.json({ message: "Course Deleted" });
 });
 
-
-
-
-
-
-//update coures
 //delete videos from course
 //coupon
 //buy course

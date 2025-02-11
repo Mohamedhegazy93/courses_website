@@ -5,49 +5,67 @@ import {
   getOneCourse,
   getAllCourses,
   deleteCourse,
-  updateCourse
+  updateCourse,
+  getOneVideo
 } from "../controllers/course.controller.js";
 import {
   protectedRoute,
   teacherRoute,
 } from "../middlewares/auth.middleware.js";
-import { createCourseValidator ,MonogIdValidator,updateCourseValidator} from "../validators/courses.validator.js";
+import {
+  createCourseValidator,
+  
+  updateCourseValidator,
+} from "../validators/courses.validator.js";
 const router = express.Router();
 import { upload } from "../config/multer.js";
-
-router.get("/", getAllCourses); //public
-
-router.get("/:courseId", MonogIdValidator,getOneCourse); //public
-
+//GET ALL COURSES
+router.get("/", getAllCourses); //PUBLIC
+//GET ONE COURSE
+router.get("/:courseId", getOneCourse); //PUBLIC
+//GET ONE VIDEO OF COURSE
+router.get("/:id/:videoId", getOneVideo); //PUBLIC
+//CREATE COURSR
 router.post(
   "/",
   protectedRoute,
   teacherRoute,
   upload.fields([
     { name: "image", maxCount: 1 },
-    { name: "videos", maxCount: 120 },]))
-    
-router.get("/:courseId", getOneCourse); //public
-router.post(
-  "/createcourse",
-  protectedRoute,
-  teacherRoute,
-  upload.fields([
-    { name: 'image', maxCount: 1 },
-    { name: 'videos',maxCount:120 } // No maxCount for videos, allowing unlimited uploads
+    { name: "videos", maxCount: 120 }, // MAX 120 VIDEOS
   ]),
 
   uploadCourseFiles,
 
   createCourseValidator,
   createCourse
-); //teacher route
-router.put("/:courseId", protectedRoute, teacherRoute ,MonogIdValidator,updateCourseValidator,updateCourse); //teacher route
-router.delete("/:courseId", protectedRoute, teacherRoute, MonogIdValidator,deleteCourse); //teacher route
-router.post("/addcoursevideos", deleteCourse); //teacher route
-router.delete("/:courseId",  protectedRoute,
-  teacherRoute,deleteCourse); //teacher route
+); //TEACHER ROUTE
+//UPDATE COURSE
+router.put(
+  "/:id",
+  protectedRoute,
+  teacherRoute,
+  
+  updateCourseValidator,
+  updateCourse
+); //TEACHER ROUTE
+//DELETE COURSR
+router.delete(
+  "/:id",
+  protectedRoute,
+  teacherRoute,
+  
+  deleteCourse
+); //TEACHER ROUTE
+router.delete("/:courseId", protectedRoute, teacherRoute, deleteCourse); //TEACHER ROUTE
+
 
 export default router;
 
 // router.post("/uploadcourseimage", upload.single("file"), uploadCourseImage);
+
+
+
+//get one video of course
+//get all videos of course
+//delete one video of coursr

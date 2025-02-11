@@ -1,13 +1,16 @@
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
 import nodemailer from "nodemailer";
-import asyncHandler  from 'express-async-handler'
-import ApiError from '../utils/apiError.js'
+import asyncHandler from "express-async-handler";
+import ApiError from "../utils/apiError.js";
+import Course from '../models/course.model.js'
+import { dirname } from "path";
+import {cloudinaryUpload,cloudinaryRemove} from '../config/cloudnairy.js'
+import fs from 'fs'
 //GET ALL USERS
 //ADMIN ROUTE
 export const getAllUsers = async (req, res) => {
-  const users = await User.find();
+  const users = await User.find().lean();
   res.json({
     length: users.length,
     data: users,
@@ -15,20 +18,73 @@ export const getAllUsers = async (req, res) => {
 };
 //GET USER DATA
 //USER ROUTE AUTH
-export const getUserData =asyncHandler (async (req, res,next) => {
-  const user = await User.findById(req.params.id);
+export const getUserData = asyncHandler(async (req, res, next) => {
+  const user = await User.findById(req.params.id).populate(
+    "createdCourses",
+    "title price"
+  ); //populate>>>>>>extract all proprity of this
   if (!user) {
     return next(new ApiError(`No USER for this id`, 404));
   }
 
-  if (req.user.userId !== user._id.toString()) {
-    return res.json({ messgae: "this is not your data" });
-  }
+  // if (req.user.userId !== user._id.toString()) {
+  //   return res.json({ messgae: "this is not your data" });
+  // }
 
   res.status(200).json({
     data: user,
   });
-}) 
+});
+export const getCoursesOfTeacher = asyncHandler(async (req, res, next) => {
+  const user=await User.findById(req.params.id)
+  if(!user){
+    return next(new ApiError('user not found',400))
+  }
+
+  const courses=await Course.find({teacher:req.params.id}).select('title price level')
+ 
+  return res.json({
+    length:courses.length,
+    data:courses
+  })
+
+});
+export const getUserProfile = asyncHandler(async (req, res, next) => {
+const user=await User.findById(req.params.id).select('-passwordResetCode -updatedAt -password -__v ').populate('createdCourses','title level')
+if(!user){
+  return next(new ApiError('user not found',400))
+}
+res.json(user)
+
+});
+export const uploadUserImage = asyncHandler(async (req, res, next) => {
+  //image path
+  const imagePath=(dirname,`./uploads/${req.file.filename}`)
+  //pass image path to upload to cludinary
+  const result =await cloudinaryUpload(imagePath)  // secure_url + public_id
+  console.log(result,'result')
+  //delete old image from DB
+  const user=await User.findById(req.user.userId)
+  if(user.profileImage.public_id!==null){
+    await cloudinaryRemove(user.profileImage.public_id)
+  }
+  //update profileimage in DB
+  user.profileImage={
+    url:result.secure_url,
+    public_id:result.public_id
+  }
+  await user.save()
+ 
+  res.json({
+    message:'image added sucessfully',
+    profileImage:{url:result.secure_url, public_id:result.public_id}
+})
+
+//remove image from server
+fs.unlinkSync(imagePath)
+
+
+});
 //UPDATE USER DATA
 //USER ROUTE AUTH
 export const updateUserData = async (req, res) => {
@@ -205,65 +261,66 @@ export const forgetPassword = async (req, res) => {
 };
 
 export const verifyPassResetCode = async (req, res) => {
-  const {resetCodeFromBody}=req.body
-  const user=await User.findOne({
-    passwordResetCode:resetCodeFromBody
-   
-  })
+  const { resetCodeFromBody } = req.body;
+  const user = await User.findOne({
+    passwordResetCode: resetCodeFromBody,
+  });
 
-  if(!user){
+  if (!user) {
     return res.json({
-      message:"reset code not valid , please click forgetPassword again from settings"
-    })
+      message:
+        "reset code not valid , please click forgetPassword again from settings",
+    });
   }
-  user.passwordResetCode=''
-  await user.save()
+  user.passwordResetCode = "";
+  await user.save();
   return res.json({
-    message:"verfication resetCode successfully"
-  })
-
-}
+    message: "verfication resetCode successfully",
+  });
+};
 
 export const resetPassword = async (req, res) => {
-  const {email,newPassword}=req.body
-  if(!email||!newPassword){
-    return res.josn({message:"please fill all fields"})
+  const { email, newPassword } = req.body;
+  if (!email || !newPassword) {
+    return res.josn({ message: "please fill all fields" });
   }
-  const user=await User.findById(req.user.userId)
-  if(!user){
-    return res.json({message:'user not found'})
+  const user = await User.findById(req.user.userId);
+  if (!user) {
+    return res.json({ message: "user not found" });
   }
 
-  if(user.email!==email){
-    return res.json({message:"incorrect email"})
+  if (user.email !== email) {
+    return res.json({ message: "incorrect email" });
   }
 
   if (await user.comparePassword(newPassword)) {
-    return res.json({message:"this is old password , please try another one"})
+    return res.json({
+      message: "this is old password , please try another one",
+    });
   }
   const salt = await bcrypt.genSalt(10);
- const newPasswordHashed = await bcrypt.hash(newPassword, salt);
+  const newPasswordHashed = await bcrypt.hash(newPassword, salt);
 
+  const updatepassword = await User.findByIdAndUpdate(
+    req.user.userId,
+    {
+      password: newPasswordHashed,
+    },
+    { new: true }
+  );
 
-  const updatepassword=await User.findByIdAndUpdate(req.user.userId,{
-    password:newPasswordHashed
-  },{new:true})
-
-  await user.save()
+  await user.save();
 
   return res.json({
-    message:"password update successfully"
-
-  })
-
-
-
-
-
-
-
-}
+    message: "password update successfully",
+  });
+};
+//----------------------------------------------------------------------- getUserProfile
+// export const getUserProfile = async (req, res) => {
+//   const user=await User.findById(req.params.id)
+//   if(!user){
+//     return next(new ApiError('user not found',400))
+//   }
 
 
-
-
+// }
