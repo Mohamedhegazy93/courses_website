@@ -18,7 +18,7 @@ export const getAllUsers = async (req, res) => {
 };
 //GET USER DATA
 //USER ROUTE AUTH
-export const getUserData = asyncHandler(async (req, res, next) => {
+export const getOneUser = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.params.id).populate(
     "createdCourses",
     "title price"
@@ -35,20 +35,7 @@ export const getUserData = asyncHandler(async (req, res, next) => {
     data: user,
   });
 });
-export const getCoursesOfTeacher = asyncHandler(async (req, res, next) => {
-  const user=await User.findById(req.params.id)
-  if(!user){
-    return next(new ApiError('user not found',400))
-  }
 
-  const courses=await Course.find({teacher:req.params.id}).select('title price level')
- 
-  return res.json({
-    length:courses.length,
-    data:courses
-  })
-
-});
 export const getUserProfile = asyncHandler(async (req, res, next) => {
 const user=await User.findById(req.params.id).select('-passwordResetCode -updatedAt -password -__v ').populate('createdCourses','title level')
 if(!user){
@@ -58,13 +45,17 @@ res.json(user)
 
 });
 export const uploadUserImage = asyncHandler(async (req, res, next) => {
+  const user=await User.findById(req.params.id)
+  if(!user){
+    return next(new ApiError('user not found',400))
+  }
   //image path
   const imagePath=(dirname,`./uploads/${req.file.filename}`)
   //pass image path to upload to cludinary
   const result =await cloudinaryUpload(imagePath)  // secure_url + public_id
-  console.log(result,'result')
+  console.log(result,'image')
   //delete old image from DB
-  const user=await User.findById(req.user.userId)
+ 
   if(user.profileImage.public_id!==null){
     await cloudinaryRemove(user.profileImage.public_id)
   }

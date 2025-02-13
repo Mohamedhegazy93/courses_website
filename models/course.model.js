@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import User from './user.model.js'
+import { video } from "framer-motion/client";
 
 const courseSchema = new mongoose.Schema(
   {
@@ -38,13 +39,20 @@ const courseSchema = new mongoose.Schema(
     videos:[{
       filename:String,
       title:String,
-      duration:String
+      duration:String,
+      url:String,
+      public_id:String
+     
+     
+     
+     
     }]
   },
   {
     timestamps: true,
   }
 );
+
 
 courseSchema.statics.calucaule=async function(teacherId){
   const result=await this.aggregate([

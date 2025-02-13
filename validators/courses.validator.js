@@ -42,3 +42,8 @@ export const MonogIdValidator = [
 
   validatorMiddleware,
 ];
+export const updateUserDataValidator = [
+  check("id").isMongoId().withMessage("invalid monogo id format"),
+
+  validatorMiddleware,
+];

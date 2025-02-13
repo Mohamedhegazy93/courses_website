@@ -9,6 +9,7 @@ import { dirname } from "path";
 import User from "../models/user.model.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+import {cloudinaryUpload,cloudinaryRemove} from '../config/cloudnairy.js'
 //-----------------------------------------------------------------------
 //UPLOAD FILES
 export const uploadCourseFiles = asyncHandler(async (req, res, next) => {
@@ -78,6 +79,42 @@ export const uploadCourseFiles = asyncHandler(async (req, res, next) => {
 
   next();
 });
+export const getCoursesOfTeacher = asyncHandler(async (req, res, next) => {
+  const user = await User.findById(req.params.teacherId);
+  if (!user) {
+    return next(new ApiError("user not found", 400));
+  }
+
+  const courses = await Course.find({ teacher: req.params.teacherId }).select(
+    "title price level"
+  );
+
+  return res.json({
+    length: courses.length,
+    data: courses,
+  });
+});
+export const getVideosOfCourse = asyncHandler(async (req, res, next) => {
+  const course = await Course.findById(req.params.courseId);
+  if (!course) {
+    return next(new ApiError("user not found", 400));
+  }
+  res.json({
+    length: course.videos.length,
+    videos: course.videos,
+  });
+});
+export const getOneVideoOfCourse = asyncHandler(async (req, res, next) => {
+  const course = await Course.findById(req.params.courseId);
+  if (!course) {
+    return next(new ApiError("user not found", 400));
+  }
+  res.json({
+    length: course.videos.length,
+    videos: course.videos,
+  });
+});
+
 //-----------------------------------------------------------------------
 //CREATE COURSE
 export const createCourse = asyncHandler(async (req, res) => {
@@ -114,7 +151,7 @@ export const getAllCourses = asyncHandler(async (req, res, next) => {
     .skip(skip)
     .limit(limit)
     .populate("teacher", "fullName -_id")
-    .select("-__v -videos -description");
+    .select("_id title teacher image createdAt");
 
   if (req.query.sort) {
     console.log(req.query.sort);
@@ -138,11 +175,15 @@ export const getOneCourse = asyncHandler(async (req, res, next) => {
   const course = await Course.findById(req.params.courseId).populate(
     "teacher",
     "fullName -_id"
-  );
+  )
   if (!course) {
     return next(new ApiError("course not found", 400));
   }
-  res.json(course);
+  res.json({
+    number_of_lectures:course.videos.length,
+    
+    course
+  });
 });
 export const getOneVideo = asyncHandler(async (req, res, next) => {
   const course = await Course.findById(req.params.id);
@@ -210,6 +251,36 @@ export const deleteCourse = asyncHandler(async (req, res, next) => {
   }
 
   res.json({ message: "Course Deleted" });
+});
+export const deleteCourses = asyncHandler(async (req, res, next) => {
+ const courses=await Course.deleteMany()
+
+ res.json('all courses deleteettetetetetetetd')
+});
+//-----------------------------------------------------------------------
+//DELETE VIDEO FROM COURSE
+export const deleteOneVideo = asyncHandler(async (req, res, next) => {
+  const course = await Course.findById(req.params.courseId);
+  if (!course) {
+    return next(new ApiError("course not found", 400));
+  }
+  const video = course.videos.find(
+    (ele) => ele._id.toString() === req.params.videoId
+  );
+  //filter
+
+  if (!video) {
+    return next(new ApiError("video not found", 400));
+  }
+  console.log(video);
+  await Course.findByIdAndUpdate(
+    req.params.courseId,
+    { $pull: { videos: { _id: req.params.videoId } } },
+    { new: true }
+  );
+  res.json({
+    message: "video deleted",
+  });
 });
 
 //delete videos from course
