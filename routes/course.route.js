@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  uploadCourseFiles,
+  uploadCourseimage,
   createCourse,
   getOneCourse,
   getAllCourses,
@@ -10,7 +10,8 @@ import {
   getCoursesOfTeacher,
   getVideosOfCourse,
   deleteOneVideo,
-  deleteCourses
+  deleteCourses,
+  
 } from "../controllers/course.controller.js";
 import {
   protectedRoute,
@@ -22,7 +23,7 @@ import {
   updateCourseValidator,
 } from "../validators/courses.validator.js";
 const router = express.Router();
-import { upload } from "../config/multer.js";
+import { upload} from "../config/multer.js";
 //-------------------------------------------------------------------------------------------------------------//
 //--Public Routes--//
 router.get("/", getAllCourses); 
@@ -36,18 +37,28 @@ router.get("/:courseId/videos", getVideosOfCourse); //Paid    //get the content
 //-------------------------------------------------------------------------------------------------------------//
 //--Teacher Routes--//
 //create course
+// router.post(
+//   "/",
+//   protectedRoute,
+//   teacherRoute,
+//   upload.fields([
+//     { name: "image", maxCount: 1 },
+//     { name: "videos", maxCount: 120 }, // MAX 120 VIDEOS
+//   ]),
+//   uploadCourseFiles,
+//   createCourseValidator,
+//   createCourse
+// );
 router.post(
   "/",
   protectedRoute,
   teacherRoute,
-  upload.fields([
-    { name: "image", maxCount: 1 },
-    { name: "videos", maxCount: 120 }, // MAX 120 VIDEOS
-  ]),
-  uploadCourseFiles,
-  createCourseValidator,
+  upload.single('image'),
+  uploadCourseimage,
   createCourse
 );
+
+//createCourseValidator
 
 //Update Course
 router.put(

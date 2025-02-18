@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import  bcrypt from 'bcryptjs'
-import { object } from "framer-motion/client";
 
 
 const userSchema = new mongoose.Schema(
@@ -29,18 +28,6 @@ const userSchema = new mongoose.Schema(
 			minlength: [6, "Password must be at least 6 characters"],
 			maxlength: [100, "Password must be at most 30 characters"],
 		},
-		cartItems: [
-			{
-				quantity: {
-					type: Number,
-					default: 1,
-				},
-				course: {
-					type: mongoose.Schema.Types.ObjectId,
-					ref: "Course",
-				},
-			},
-		],
 		role: {
 			type: String,
             required:[true,'you should choose a role'],
@@ -58,25 +45,28 @@ const userSchema = new mongoose.Schema(
 			default:'',
 		
 		},
-		totalCourses:{
+		avgPricePerCourse:{
 			type:Number,
-			
-		},
-		createdCourses: [ // Array to store ObjectIds of created courses
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Course", // Referencing the Course model
-            },
-        ],
+			default:undefined
+		}
 
+		
     
 		
 		
 	},
 	{
 		timestamps: true,
+		toJSON:{virtuals:true},
+		toObject:{virtuals:true}
 	}
 );
+
+userSchema.virtual('courses',{
+	ref:'Course',
+	foreignField:'teacher',
+	localField:'_id'
+})
 
 
 // Pre-save hook to hash password before saving to database

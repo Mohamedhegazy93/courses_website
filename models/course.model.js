@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
-import bcrypt from "bcryptjs";
-import User from './user.model.js'
-import { video } from "framer-motion/client";
+import User from "./user.model.js";
+
 
 const courseSchema = new mongoose.Schema(
   {
@@ -37,14 +36,7 @@ const courseSchema = new mongoose.Schema(
       required:true
     },
     videos:[{
-      filename:String,
       title:String,
-      duration:String,
-      url:String,
-      public_id:String
-     
-     
-     
      
     }]
   },
@@ -53,41 +45,39 @@ const courseSchema = new mongoose.Schema(
   }
 );
 
-
-courseSchema.statics.calucaule=async function(teacherId){
+// courseSchema.aggregate([
+//   {
+//     $match
+//   }
+// ])
+courseSchema.statics.calculateAvragePriceForTeacher=async function(teacherId){   //call it every time create course
   const result=await this.aggregate([
     {
-      $match:{teacher:teacherId},  //get courses belong to this schema
+      $match:{teacher:teacherId},
+      
     },
-    {
-      $group:{
-        _id:'teacher',
-        avgPrice:{$avg:'$price'},
-        priceQuantity:{$sum:1}
+   { $group:{_id:'teacher',avgPricePerCourse:{$avg:'$price'}}}
+  ])
+  console.log(result)
+  if(result.length > 0){
+    await User.findByIdAndUpdate(teacherId,{
+      avgPricePerCourse:result[0].avgPricePerCourse
+    })
+  }else{
+    await User.findByIdAndUpdate(teacherId,{
+      avgPricePerCourse:0
+    })
 
+  }
 
-      }
-    }
-
-  ]
-
-)
-
-const teacher=await User.findById(teacherId)
-teacher.totalCourses=result[0].priceQuantity
-console.log(result[0].priceQuantity)
-await teacher.save()
-console.log(teacher)
-console.log(result)
-
-  
-  
 }
 
+courseSchema.post('save',async function(){   //call it at controller
+await this.constructor.calculateAvragePriceForTeacher(this.teacher)
 
-courseSchema.post('save',async function(){
- await this.constructor.calucaule(this.teacher)
- 
+})
+courseSchema.post('remove',async function(){   //call it at controller
+await this.constructor.calculateAvragePriceForTeacher(this.teacher)
 
 })
 

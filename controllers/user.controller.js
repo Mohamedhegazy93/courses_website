@@ -15,14 +15,16 @@ export const getAllUsers = async (req, res) => {
     length: users.length,
     data: users,
   });
+  if(!users){
+    res.json({
+      message:"no users founded"
+    }).status(400)
+  }
 };
 //GET USER DATA
 //USER ROUTE AUTH
 export const getOneUser = asyncHandler(async (req, res, next) => {
-  const user = await User.findById(req.params.id).populate(
-    "createdCourses",
-    "title price"
-  ); //populate>>>>>>extract all proprity of this
+  const user = await User.findById(req.params.id)
   if (!user) {
     return next(new ApiError(`No USER for this id`, 404));
   }
@@ -37,7 +39,7 @@ export const getOneUser = asyncHandler(async (req, res, next) => {
 });
 
 export const getUserProfile = asyncHandler(async (req, res, next) => {
-const user=await User.findById(req.params.id).select('-passwordResetCode -updatedAt -password -__v ').populate('createdCourses','title level')
+const user=await User.findById(req.params.id).select('-passwordResetCode -password -__v ').populate('courses')
 if(!user){
   return next(new ApiError('user not found',400))
 }
@@ -51,8 +53,12 @@ export const uploadUserImage = asyncHandler(async (req, res, next) => {
   }
   //image path
   const imagePath=(dirname,`./uploads/${req.file.filename}`)
-  //pass image path to upload to cludinary
-  const result =await cloudinaryUpload(imagePath)  // secure_url + public_id
+  //or   const imagePath=req.file.path
+  console.log(req.file)
+
+  //pass image path to upload to cloudinary
+  const result =await cloudinaryUpload(imagePath) 
+  console.log(imagePath) // secure_url + public_id
   console.log(result,'image')
   //delete old image from DB
  
@@ -124,7 +130,7 @@ export const unActivateUser = async (req, res) => {
     },
     { new: true }
   );
-  res.json(unActivated);
+  res.json({message:'user unactivate sucessfully'});
 };
 //ACTIVE USER AGAIN
 //USER ROUTE AUTH
@@ -149,7 +155,7 @@ export const activateUser = async (req, res) => {
     },
     { new: true }
   );
-  res.json(unActivated);
+  res.json({message:'user activate sucessfully'});
 };
 //UPDATE USER PASSWORD
 //USER ROUTE AUTH
