@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  uploadCourseimage,
+  uploadCourseFiles,
   createCourse,
   getOneCourse,
   getAllCourses,
@@ -37,26 +37,19 @@ router.get("/:courseId/videos", getVideosOfCourse); //Paid    //get the content
 //-------------------------------------------------------------------------------------------------------------//
 //--Teacher Routes--//
 //create course
-// router.post(
-//   "/",
-//   protectedRoute,
-//   teacherRoute,
-//   upload.fields([
-//     { name: "image", maxCount: 1 },
-//     { name: "videos", maxCount: 120 }, // MAX 120 VIDEOS
-//   ]),
-//   uploadCourseFiles,
-//   createCourseValidator,
-//   createCourse
-// );
 router.post(
   "/",
   protectedRoute,
   teacherRoute,
-  upload.single('image'),
-  uploadCourseimage,
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "videos", maxCount: 120 }, // MAX 120 VIDEOS
+  ]),
+  uploadCourseFiles,
+  createCourseValidator,
   createCourse
 );
+
 
 //createCourseValidator
 
@@ -65,6 +58,10 @@ router.put(
   "/:id",
   protectedRoute,
   teacherRoute,
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "videos", maxCount: 120 }, // MAX 120 VIDEOS
+  ]),
   updateCourseValidator,
   updateCourse
 );

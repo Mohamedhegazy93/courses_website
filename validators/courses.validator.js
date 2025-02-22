@@ -23,16 +23,18 @@ export const createCourseValidator = [
 export const updateCourseValidator = [
   check("title").optional().isString().withMessage("title must be string"),
 
-  check("description").optional().isString().withMessage("description must be string"),
-  check("level").optional()
+  check("description")
+    .optional()
+    .isString()
+    .withMessage("description must be string"),
+  check("level")
+    .optional()
     .isIn(["begineers", "immdiate", "advanced", "all_levels"])
     .withMessage(
       "Invalid level. Must be one of: begineers, immdiate, advanced, all_levels"
     ),
 
-  check("price").optional()
-    .isNumeric()
-    .withMessage("price must be number"),
+  check("price").optional().isNumeric().withMessage("price must be number"),
 
   validatorMiddleware,
 ];

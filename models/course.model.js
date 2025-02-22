@@ -8,6 +8,7 @@ const courseSchema = new mongoose.Schema(
       type: String,
       required: [true, "title is required"],
       trim: true,
+      
     },
     description: {
       type: String,
@@ -31,14 +32,35 @@ const courseSchema = new mongoose.Schema(
       required:true
     },
    
-    image: {
-      type: String,
-      required:true
-    },
-    videos:[{
-      title:String,
-     
-    }]
+    image:{
+			type:Object,
+			default:{
+				url:'https://pixabay.com/vectors/man-avatar-user-drawing-sketch-157699/',
+				public_id:null
+			}
+		},
+	
+    videos: [
+      {
+        title: {
+          type: String,
+          required: [true, "video title is required"],
+          trim: true,
+        },
+        duration: {
+          type: String,
+          trim: true,
+        },
+        url: {
+          type: String,
+          trim:true
+        },
+        public_id: {
+          type: String,
+          trim:true
+        }
+      },
+    ],
   },
   {
     timestamps: true,

@@ -2,7 +2,7 @@ import asyncHandler from "express-async-handler";
 import Course from "../models/course.model.js";
 import ApiError from "../utils/apiError.js";
 import { getVideoDurationInSeconds } from "get-video-duration";
-import getVideoDuration  from'get-video-duration';
+import getVideoDuration from "get-video-duration";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -10,30 +10,80 @@ import { dirname } from "path";
 import User from "../models/user.model.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-import {cloudinaryUpload,cloudinaryRemove} from '../config/cloudnairy.js'
+import { cloudinaryUpload, cloudinaryRemove } from "../config/cloudnairy.js";
 //-----------------------------------------------------------------------
 //UPLOAD FILES
-export const uploadCourseimage = asyncHandler(async (req, res, next) => {
-  
-  if (!req.file) {
-    return next(new ApiError("please upload course files", 400));
+export const uploadCourseFiles = asyncHandler(async (req, res, next) => {
+  if (req.files.image) {
+    const imagePath = (dirname, `./uploads/${req.files.image[0].filename}`);
+    //upload to cloudinary
+    const result = await cloudinaryUpload(imagePath);
+    req.body.image = {
+      url: result.secure_url,
+      public_id: result.public_id,
+    };
+    //delete from server
+    fs.unlinkSync(imagePath);
   }
-   const imagePath=req.file.path
-
-  const result = await cloudinaryUpload(
-    imagePath
-  );
-  // console.log(req.files.image[0].path,'req.files.image[0].path')  uploads\xxxxxxxx.jpg req.files.image[0].path
-
-  req.body.image = result.secure_url;
-  fs.unlinkSync(imagePath); 
-
-
-
-  
- 
   //upload videos
- 
+  if (req.files.videos) {
+    req.body.videos = [];
+    const videosTitles = new Set();
+
+    for (const [index, video] of req.files.videos.entries()) {
+      const videoTitle = req.body.videoTitle[index];
+      const title =
+        req.body.videoTitle && videoTitle ? videoTitle : video.originalname;
+
+      console.log(videoTitle);
+
+      if (videosTitles.has(videoTitle)) {
+        return next(
+          new ApiError(
+            `Video with  title ${videoTitle} duplicated , please change title`,
+            400
+          )
+        );
+      }
+
+      videosTitles.add(videoTitle);
+      //get video duration in secs
+      try {
+        const videoPath = path.join(__dirname, "..", "uploads", video.filename);
+        console.log(videoPath);
+
+        if (fs.existsSync(videoPath)) {
+          let durationInSeconds = await getVideoDurationInSeconds(videoPath);
+          const durationInMinutes = Math.floor(durationInSeconds / 60);
+          const remainingSeconds = Math.round(durationInSeconds % 60);
+          const formattedDuration = `${durationInMinutes}:${
+            remainingSeconds < 10 ? "0" + remainingSeconds : remainingSeconds
+          }`;
+          console.log("Duration:", durationInSeconds);
+
+          req.body.videos.push({
+            title,
+            duration: formattedDuration,
+          });
+          fs.unlinkSync(videoPath);
+        } else {
+          console.error("File not found:", videoPath);
+          return next(
+            new ApiError(`Video file not found: ${video.filename}`, 400)
+          );
+        }
+      } catch (error) {
+        console.error(`Error processing video ${video.filename}:`, error);
+        return next(
+          new ApiError(
+            `Error processing video ${video.filename}: ${error.message}`,
+            500
+          )
+        );
+      }
+    }
+  }
+
   next();
 });
 
@@ -86,7 +136,6 @@ export const createCourse = asyncHandler(async (req, res) => {
     image,
     videos,
   });
- 
 
   return res.json(courseCreate);
 });
@@ -106,13 +155,18 @@ export const getAllCourses = asyncHandler(async (req, res, next) => {
   let mongooseQuery = Course.find(JSON.parse(queryStr))
     .skip(skip)
     .limit(limit)
-    .populate("teacher", "fullName -_id")
-    .select("_id title teacher image createdAt");
+    .populate("teacher", "fullName -_id");
 
   if (req.query.sort) {
-    console.log(req.query.sort);
     let sortby = req.query.sort.split(",").join(" ");
     mongooseQuery = mongooseQuery.sort(sortby);
+  }
+
+  if (req.query.fields) {
+    const fields = req.query.fields.split(",").join(" ");
+    mongooseQuery = mongooseQuery.select(fields);
+  } else {
+    mongooseQuery = mongooseQuery.select("-__v");
   }
 
   const courses = await mongooseQuery;
@@ -131,14 +185,14 @@ export const getOneCourse = asyncHandler(async (req, res, next) => {
   const course = await Course.findById(req.params.courseId).populate(
     "teacher",
     "fullName -_id"
-  )
+  );
   if (!course) {
     return next(new ApiError("course not found", 400));
   }
   res.json({
-    number_of_lectures:course.videos.length,
-    
-    course
+    number_of_lectures: course.videos.length,
+
+    course,
   });
 });
 export const getOneVideo = asyncHandler(async (req, res, next) => {
@@ -161,7 +215,6 @@ export const getOneVideo = asyncHandler(async (req, res, next) => {
 //UPDATE COURSE
 export const updateCourse = asyncHandler(async (req, res, next) => {
   const { title, description, level, price } = req.body;
-
   const course = await Course.findById(req.params.id);
   if (!course) {
     return next(new ApiError("Course not found", 404));
@@ -171,6 +224,20 @@ export const updateCourse = asyncHandler(async (req, res, next) => {
       new ApiError("You are not authorized to update this course", 403)
     );
   }
+
+  if (req.files.image) {
+    const imagePath = (dirname, `./uploads/${req.files.image[0].filename}`);
+    const result = await cloudinaryUpload(imagePath);
+    await cloudinaryRemove(course.image.public_id);
+
+    course.image = {
+      url: result.secure_url,
+      public_id: result.public_id,
+    };
+    await course.save();
+    fs.unlinkSync(imagePath);
+  }
+
   const updatedCourse = await Course.findByIdAndUpdate(
     req.params.id,
     { title, description, level, price },
@@ -189,32 +256,26 @@ export const updateCourse = asyncHandler(async (req, res, next) => {
   });
 });
 //-----------------------------------------------------------------------
+
 //DELETE COURSE
 export const deleteCourse = asyncHandler(async (req, res, next) => {
-
-  const course=await Course.findById(req.params.courseId)
- 
+  const course = await Course.findById(req.params.courseId);
 
   const deletedCourse = await Course.findByIdAndDelete(req.params.courseId);
   if (req.user.userId.toString() !== course.teacher._id.toString()) {
     return next(new ApiError("you can not perfrom this action", 400));
   }
-  if(!course){
+  if (!course) {
     return next(new ApiError("course not found", 400));
-
-
   }
   await Course.calculateAvragePriceForTeacher(deletedCourse.teacher);
-
-
-
 
   res.json({ message: "Course Deleted" });
 });
 export const deleteCourses = asyncHandler(async (req, res, next) => {
- const courses=await Course.deleteMany()
+  const courses = await Course.deleteMany();
 
- res.json('all courses deleteettetetetetetetd')
+  res.json("all courses deleteettetetetetetetd");
 });
 //-----------------------------------------------------------------------
 //DELETE VIDEO FROM COURSE
@@ -226,8 +287,6 @@ export const deleteOneVideo = asyncHandler(async (req, res, next) => {
   const video = course.videos.find(
     (ele) => ele._id.toString() === req.params.videoId
   );
-  //filter
-
   if (!video) {
     return next(new ApiError("video not found", 400));
   }
@@ -242,7 +301,5 @@ export const deleteOneVideo = asyncHandler(async (req, res, next) => {
   });
 });
 
-//delete videos from course
-//coupon
-//buy course
-//chat between teacher and student
+//update course videos or image
+//update course videos title

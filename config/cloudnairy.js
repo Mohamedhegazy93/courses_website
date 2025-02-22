@@ -14,10 +14,13 @@ export const cloudinaryUpload = async (fileToUploded) => {
   try {
     const data = await cloudinary.uploader.upload(fileToUploded, {
       resource_type: "auto",
+      
     });
 
     return data;
   } catch (error) {
+    console.log(error,'rorororooror')
+
     return error;
   }
 };
@@ -43,3 +46,4 @@ export const cloudinaryRemove = async (imagePublicId) => {
     return error;
   }
 };
+
