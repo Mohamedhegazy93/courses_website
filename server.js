@@ -15,6 +15,7 @@ app.use(express.json());
 import authRoute from './routes/auth.route.js'
 import userRoute from './routes/user.route.js'
 import courseRoute from './routes/course.route.js'
+import orderRoute from './routes/order.route.js'
 import globalError from './middlewares/error.middleware.js'
 import ApiError from './utils/apiError.js'
 
@@ -22,6 +23,7 @@ import ApiError from './utils/apiError.js'
 app.use('/v1/api/auth',authRoute)
 app.use('/v1/api/users',userRoute)
 app.use('/v1/api/courses',courseRoute)
+app.use('/v1/api/orders',orderRoute)
 
 app.all('*', (req, res, next) => {
 	next(new ApiError(`Can't find this route: ${req.originalUrl}`, 400));
@@ -29,7 +31,7 @@ app.all('*', (req, res, next) => {
   
   // Global error handling middleware for express
   app.use(globalError);
-const PORT = process.env.PORT || 6000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
 	console.log("Server is running on http://localhost:" + PORT);
 	

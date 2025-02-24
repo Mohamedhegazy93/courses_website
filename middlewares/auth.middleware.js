@@ -16,8 +16,8 @@ export const protectedRoute = async (req, res, next) => {
     }
     // console.log(token);
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    // console.log(decoded);
     req.user = decoded;
+
     // console.log(req.user.userId);
     const user = await User.findById(req.user.userId);
     if (!user) {
