@@ -2,14 +2,18 @@ import express from "express";
 import {createCashOrder,getAllOrders,getOneOrder,updateOrderToPaid,checkoutSession} from '../controllers/order.controller.js'
 import {
     protectedRoute,
+    adminRoute
 
   } from "../middlewares/auth.middleware.js";
+  import { monogIdValidator } from "../validators/user.validator.js";
+  import {createCashOrderValidator} from '../validators/orders.validator.js'
 const router = express.Router();
 
-router.post("/:courseId",protectedRoute,createCashOrder);
-router.get("/",getAllOrders);
-router.get("/:orderId",protectedRoute,getOneOrder);
-router.patch("/:orderId/paid",protectedRoute,updateOrderToPaid);
-router.get("/checkoutsession/:courseId",protectedRoute,checkoutSession);
+
+router.post("/:courseId",protectedRoute,createCashOrderValidator,createCashOrder)
+.get("/",protectedRoute,adminRoute,getAllOrders)
+.get("/:id",protectedRoute,monogIdValidator,getOneOrder)
+.patch("/:id/paid",protectedRoute,adminRoute,monogIdValidator,updateOrderToPaid)
+.get("/checkoutsession/:id",protectedRoute,monogIdValidator,checkoutSession)
 
 export default router;

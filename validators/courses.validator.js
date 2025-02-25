@@ -19,6 +19,20 @@ export const createCourseValidator = [
 
   validatorMiddleware,
 ];
+export const getOneVideoValidator = [
+  check("id")
+  .notEmpty()
+  .withMessage("id required")
+  .isMongoId()
+  .withMessage("mongo id falied"),
+  check("videoId")
+  .notEmpty()
+  .withMessage("videoId required")
+  .isMongoId()
+  .withMessage("mongo id falied"),
+
+  validatorMiddleware,
+];
 
 export const updateCourseValidator = [
   check("title").optional().isString().withMessage("title must be string"),

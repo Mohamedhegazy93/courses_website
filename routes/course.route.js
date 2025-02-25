@@ -11,7 +11,6 @@ import {
   getVideosOfCourse,
   deleteOneVideo,
   deleteCourses,
-  
 } from "../controllers/course.controller.js";
 import {
   protectedRoute,
@@ -19,21 +18,22 @@ import {
 } from "../middlewares/auth.middleware.js";
 import {
   createCourseValidator,
-  
   updateCourseValidator,
+  getOneVideoValidator,
 } from "../validators/courses.validator.js";
+import { monogIdValidator } from "../validators/user.validator.js";
 const router = express.Router();
-import { upload} from "../config/multer.js";
+import { upload } from "../config/multer.js";
 //-------------------------------------------------------------------------------------------------------------//
 //--Public Routes--//
-router.get("/", getAllCourses); 
-router.delete("/deleteCourses", deleteCourses); 
-router.get("/:courseId", getOneCourse); //get the informations
-router.get("/:teacherId/courses",getCoursesOfTeacher); 
+router
+  .get("/", getAllCourses)
+  .get("/:id", monogIdValidator, getOneCourse) //get the informations
+  .get("/:id/courses", monogIdValidator, getCoursesOfTeacher);
 //-------------------------------------------------------------------------------------------------------------//
 //--Paid Routes--//
-router.get("/:id/:videoId", getOneVideo); //Paid
-router.get("/:courseId/videos", getVideosOfCourse); //Paid    //get the content
+router.get("/:id/:videoId", getOneVideoValidator, getOneVideo); //Paid
+router.get("/:id/videos", monogIdValidator, getVideosOfCourse); //Paid    //get the content
 //-------------------------------------------------------------------------------------------------------------//
 //--Teacher Routes--//
 //create course
@@ -49,10 +49,6 @@ router.post(
   createCourseValidator,
   createCourse
 );
-
-
-//createCourseValidator
-
 //Update Course
 router.put(
   "/:id",
@@ -67,11 +63,21 @@ router.put(
 );
 
 //Delete Course
-router.delete("/:courseId", protectedRoute, teacherRoute, deleteCourse); 
-router.delete("/:courseId/:videoId", protectedRoute, teacherRoute, deleteOneVideo); 
+router.delete(
+  "/:id",
+  protectedRoute,
+  teacherRoute,
+  monogIdValidator,
+  deleteCourse
+);
+router.delete(
+  "/:id/:videoId",
+  protectedRoute,
+  teacherRoute,
+  monogIdValidator,
+  deleteOneVideo
+);
 //-------------------------------------------------------------------------------------------------------------//
 export default router;
-
-
 
 //delete one video of course

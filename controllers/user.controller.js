@@ -10,7 +10,7 @@ import fs from 'fs'
 //GET ALL USERS
 //ADMIN ROUTE
 export const getAllUsers = async (req, res) => {
-  const users = await User.find().lean();
+  const users = await User.find().lean().select('-password');
   res.json({
     length: users.length,
     data: users,
@@ -29,9 +29,9 @@ export const getOneUser = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No USER for this id`, 404));
   }
 
-  // if (req.user.userId !== user._id.toString()) {
-  //   return res.json({ messgae: "this is not your data" });
-  // }
+  if (req.user.userId !== user._id.toString()) {
+    return res.json({ messgae: "this is not your data" });
+  }
 
   res.status(200).json({
     data: user,
@@ -39,7 +39,7 @@ export const getOneUser = asyncHandler(async (req, res, next) => {
 });
 
 export const getUserProfile = asyncHandler(async (req, res, next) => {
-const user=await User.findById(req.params.id).select('-passwordResetCode -password -__v ').populate('courses')
+const user=await User.findById(req.params.id).populate({path:'courses',select:'-videos'}).select('-passwordResetCode -password -__v ')
 if(!user){
   return next(new ApiError('user not found',400))
 }
@@ -47,9 +47,14 @@ res.json(user)
 
 });
 export const uploadUserImage = asyncHandler(async (req, res, next) => {
+
+  
   const user=await User.findById(req.params.id)
   if(!user){
     return next(new ApiError('user not found',400))
+  }
+  if (req.user.userId !== req.params.id.toString()) {
+    return res.json({ messgae: "this is not your data" });
   }
   //image path
   const imagePath=(dirname,`./uploads/${req.file.filename}`)
@@ -94,6 +99,12 @@ export const updateUserData = async (req, res) => {
   }
   if (req.body.role) {
     return res.json({ message: "you can not change your role" });
+  }
+
+  if(req.body.password){
+    return res.json({ message: "you can not change your password from here" });
+
+
   }
 
   const updateUser = await User.findByIdAndUpdate(
@@ -190,7 +201,9 @@ export const updatePassword = async (req, res) => {
       { new: true }
     );
     updatePassword.save();
-    return res.json(updatePassword);
+    return res.json({
+      message:'password upddated sucessfully'
+    });
   } else {
     return res.json({
       message: "your current password is not correct from model",
@@ -258,9 +271,9 @@ export const forgetPassword = async (req, res) => {
 };
 
 export const verifyPassResetCode = async (req, res) => {
-  const { resetCodeFromBody } = req.body;
+  const { resetCode } = req.body;
   const user = await User.findOne({
-    passwordResetCode: resetCodeFromBody,
+    passwordResetCode: resetCode,
   });
 
   if (!user) {
@@ -279,7 +292,7 @@ export const verifyPassResetCode = async (req, res) => {
 export const resetPassword = async (req, res) => {
   const { email, newPassword } = req.body;
   if (!email || !newPassword) {
-    return res.josn({ message: "please fill all fields" });
+    return res.json({ message: "please fill all fields" });
   }
   const user = await User.findById(req.user.userId);
   if (!user) {

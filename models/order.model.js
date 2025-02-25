@@ -8,17 +8,18 @@ const orderSchema = new mongoose.Schema(
       required: [true, "user is required"],
     },
     orderedCourse: {
-        type: mongoose.Schema.ObjectId,
-        ref: "Course",
-        required: [true, "course is required"],
+      type: mongoose.Schema.ObjectId,
+      ref: "Course",
+      required: [true, "course is required"],
     },
 
-    price:Number,
+    price: {
+      type: Number,
+    },
 
-    address:String,
-      
-      
-
+    address: {
+      type: String,
+    },
 
     paymentType: {
       type: String,

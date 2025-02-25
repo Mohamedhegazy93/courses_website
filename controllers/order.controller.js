@@ -41,7 +41,12 @@ export const getAllOrders = asyncHandler(async (req, res, next) => {
   });
 });
 export const getOneOrder = asyncHandler(async (req, res, next) => {
-  const order = await Order.findById(req.params.orderId);
+  const order = await Order.findById(req.params.id);
+  if(req.user.userId!==order.user.toString()){
+    return next(new ApiError("cant get this order"));
+
+
+  }
   res.json({
     order,
   });
@@ -51,6 +56,10 @@ export const updateOrderToPaid = asyncHandler(async (req, res, next) => {
   const order = await Order.findById(req.params.orderId);
   if (!order) {
     return next(new ApiError("order not found"));
+  }
+
+  if(order.isPaid==true){
+    return next(new ApiError("order already paid"));
   }
 
   order.isPaid = true;
@@ -65,7 +74,7 @@ export const updateOrderToPaid = asyncHandler(async (req, res, next) => {
 });
 
 export const checkoutSession = asyncHandler(async (req, res, next) => {
-  const course = await Course.findById(req.params.courseId);
+  const course = await Course.findById(req.params.id);
   if (!course) {
     return next(new ApiError("course not found"));
   }
@@ -93,7 +102,7 @@ export const checkoutSession = asyncHandler(async (req, res, next) => {
     success_url: `${req.protocol}://${req.get("host")}`,
     cancel_url: `${req.protocol}://${req.get("host")}/course`,
     customer_email: user.email,
-    client_reference_id: req.params.courseId,
+    client_reference_id: req.params.id,
     metadata: req.body.address,
   });
 

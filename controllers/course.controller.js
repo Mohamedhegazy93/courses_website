@@ -88,12 +88,12 @@ export const uploadCourseFiles = asyncHandler(async (req, res, next) => {
 });
 
 export const getCoursesOfTeacher = asyncHandler(async (req, res, next) => {
-  const user = await User.findById(req.params.teacherId);
+  const user = await User.findById(req.params.id);
   if (!user) {
     return next(new ApiError("user not found", 400));
   }
 
-  const courses = await Course.find({ teacher: req.params.teacherId }).select(
+  const courses = await Course.find({ teacher: req.params.id }).select(
     "title price level"
   );
 
@@ -103,7 +103,7 @@ export const getCoursesOfTeacher = asyncHandler(async (req, res, next) => {
   });
 });
 export const getVideosOfCourse = asyncHandler(async (req, res, next) => {
-  const course = await Course.findById(req.params.courseId);
+  const course = await Course.findById(req.params.id);
   if (!course) {
     return next(new ApiError("user not found", 400));
   }
@@ -182,7 +182,7 @@ export const getAllCourses = asyncHandler(async (req, res, next) => {
 //-----------------------------------------------------------------------
 //GET ONE COURSE
 export const getOneCourse = asyncHandler(async (req, res, next) => {
-  const course = await Course.findById(req.params.courseId).populate(
+  const course = await Course.findById(req.params.id).populate(
     "teacher",
     "fullName -_id"
   );
@@ -259,9 +259,9 @@ export const updateCourse = asyncHandler(async (req, res, next) => {
 
 //DELETE COURSE
 export const deleteCourse = asyncHandler(async (req, res, next) => {
-  const course = await Course.findById(req.params.courseId);
+  const course = await Course.findById(req.params.id);
 
-  const deletedCourse = await Course.findByIdAndDelete(req.params.courseId);
+  const deletedCourse = await Course.findByIdAndDelete(req.params.id);
   if (req.user.userId.toString() !== course.teacher._id.toString()) {
     return next(new ApiError("you can not perfrom this action", 400));
   }
@@ -280,7 +280,7 @@ export const deleteCourses = asyncHandler(async (req, res, next) => {
 //-----------------------------------------------------------------------
 //DELETE VIDEO FROM COURSE
 export const deleteOneVideo = asyncHandler(async (req, res, next) => {
-  const course = await Course.findById(req.params.courseId);
+  const course = await Course.findById(req.params.id);
   if (!course) {
     return next(new ApiError("course not found", 400));
   }
@@ -292,7 +292,7 @@ export const deleteOneVideo = asyncHandler(async (req, res, next) => {
   }
   console.log(video);
   await Course.findByIdAndUpdate(
-    req.params.courseId,
+    req.params.id,
     { $pull: { videos: { _id: req.params.videoId } } },
     { new: true }
   );

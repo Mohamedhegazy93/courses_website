@@ -4,7 +4,7 @@ import {validatorMiddleware} from '../middlewares/validator.middleware.js'
 export const signupValidator = [
     check('fullName')
       .notEmpty()
-      .withMessage('User required')
+      .withMessage('fullname required')
       .isLength({ min: 3 })
       .withMessage('Too short User name'),
      
